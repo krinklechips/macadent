@@ -416,7 +416,7 @@ export const companyIdentity = {
   tradeName: "Macadent",
   legalName: "Macadent Sdn Bhd",
   subtitle: "Equipment, sterilization systems, and consumables procurement for modern dental clinics.",
-  businessRegistration: "202201028017 (1473714-P)"
+  businessRegistration: "202601000844 (1662942-V)"
 } as const;
 
 export const complianceCredentials = [

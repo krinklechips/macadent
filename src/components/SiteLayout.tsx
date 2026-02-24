@@ -13,12 +13,6 @@ export default function SiteLayout() {
     email: "",
     country: "Malaysia"
   });
-  const footerLicenseLines = [
-    { label: "MDA AR", reference: "MDA-9146-W125" },
-    { label: "MDA Importer", reference: "MDA-9447-P125" },
-    { label: "GDPMD", reference: "QS GDPMD 008" },
-    { label: "LPTA C & E", reference: "LPTA A 3748" }
-  ] as const;
   const footerColumns = [
     {
       title: "Products & Solutions",
@@ -291,17 +285,11 @@ export default function SiteLayout() {
 
       <header className="site-header">
         <Link className="brand" to="/">
-          <span className="brand-mark">
-            <img
-              className="brand-logo"
-              src="/topline-logo.png"
-              alt="Macadent logo"
-            />
-          </span>
-          <div>
-            <p className="brand-title">Macadent</p>
-            <p className="brand-subtitle">We accelerate your dental practice.</p>
-          </div>
+          <img
+            className="brand-logo brand-logo--lockup"
+            src="/mcd-v2-transparent.png"
+            alt="Macadent Sdn Bhd Dental and Medical Supplies"
+          />
         </Link>
         <nav className="nav-links">
           <div className="nav-item has-mega">
@@ -390,9 +378,9 @@ export default function SiteLayout() {
           <div className="footer-brand-column">
             <Link className="footer-brand-link" to="/company">
               <img
-                className="footer-brand-logo"
-                src="/topline-logo.png"
-                alt="Macadent logo"
+                className="footer-brand-logo footer-brand-logo--lockup"
+                src="/mcd-v2-transparent.png"
+                alt="Macadent Sdn Bhd Dental and Medical Supplies"
               />
               <div>
                 <p className="footer-brand-name">{companyIdentity.tradeName}</p>
@@ -401,18 +389,6 @@ export default function SiteLayout() {
             </Link>
             <p className="footer-meta">{companyIdentity.legalName}</p>
             <p className="footer-meta">Business Reg: {companyIdentity.businessRegistration}</p>
-            <div className="footer-inline-licenses">
-              <p className="footer-label">Licensing &amp; Compliance</p>
-              <div className="footer-license-lines">
-                {footerLicenseLines.map((item) => (
-                  <p key={item.reference} className="footer-license-line">
-                    <span className="footer-license-line-label">{item.label}</span>
-                    <span className="footer-license-line-sep">:</span>
-                    <span className="footer-license-line-ref">{item.reference}</span>
-                  </p>
-                ))}
-              </div>
-            </div>
           </div>
 
           {footerColumns.map((column) => (

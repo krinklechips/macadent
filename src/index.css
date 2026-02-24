@@ -78,7 +78,7 @@ a {
 
 .brand {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -99,6 +99,12 @@ a {
   height: 100%;
   object-fit: contain;
   padding: 0;
+}
+
+.brand-logo--lockup {
+  width: clamp(220px, 20vw, 360px);
+  height: auto;
+  display: block;
 }
 
 .brand-title {
@@ -3585,7 +3591,7 @@ kbd {
 
 .footer-brand-link {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   text-decoration: none;
 }
@@ -3595,6 +3601,11 @@ kbd {
   height: 40px;
   object-fit: contain;
   flex-shrink: 0;
+}
+
+.footer-brand-logo--lockup {
+  width: min(100%, 210px);
+  height: auto;
 }
 
 .footer-brand-name {
@@ -3967,6 +3978,19 @@ kbd {
   .footer-sitemap {
     grid-template-columns: 1fr;
     gap: 20px;
+  }
+
+  .brand-logo--lockup {
+    width: min(62vw, 260px);
+  }
+
+  .footer-brand-link {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .footer-brand-logo--lockup {
+    width: min(100%, 240px);
   }
 
   .footer-bottom {
