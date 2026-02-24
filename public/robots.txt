@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://macadent.com.my/sitemap.xml
