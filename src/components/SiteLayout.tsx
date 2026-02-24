@@ -382,10 +382,6 @@ export default function SiteLayout() {
                 src="/mcd-v2-transparent.png"
                 alt="Macadent Sdn Bhd Dental and Medical Supplies"
               />
-              <div>
-                <p className="footer-brand-name">{companyIdentity.tradeName}</p>
-                <p className="footer-brand-tagline">{companyIdentity.subtitle}</p>
-              </div>
             </Link>
             <p className="footer-meta">{companyIdentity.legalName}</p>
             <p className="footer-meta">Business Reg: {companyIdentity.businessRegistration}</p>
@@ -428,8 +424,8 @@ export default function SiteLayout() {
               <div className="footer-group">
                 <p className="footer-label">Office</p>
                 <p className="footer-address">
-                  I-05-5, Setiawalk, Block I, Persiaran Wawasan, Bandar Pusat Puchong,
-                  47160 Puchong, Selangor D.E., Malaysia
+                  D-GF-05, Ground Floor, Skypark @ One City, Jalan USJ 25/1, 47650 Subang Jaya,
+                  Selangor, Malaysia
                 </p>
               </div>
             </div>

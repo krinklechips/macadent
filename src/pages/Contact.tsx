@@ -100,8 +100,8 @@ export default function Contact() {
           <div className="contact-inline-item">
             <p className="contact-label">Office</p>
             <p className="contact-address">
-              I-05-5, Setiawalk, Block I, Persiaran Wawasan, Bandar Pusat Puchong, 47160 Puchong,
-              Selangor D.E., Malaysia
+              D-GF-05, Ground Floor, Skypark @ One City, Jalan USJ 25/1, 47650 Subang Jaya,
+              Selangor, Malaysia
             </p>
           </div>
           <div className="contact-inline-item contact-inline-item--meta">
