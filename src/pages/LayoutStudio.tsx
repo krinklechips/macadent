@@ -712,7 +712,7 @@ export default function LayoutStudio() {
       .join("\n");
 
     const bodyLines = [
-      "Hi Carey,",
+      "Hi Sales Team,",
       "",
       "Please find my clinic layout draft attached (PNG + JSON were downloaded from Layout Studio).",
       "",

@@ -120,7 +120,7 @@ export const productCategories: ProductCategory[] = [
         primaryLabel: "Request a Quote",
         primaryHref: "/contact",
         secondaryLabel: "WhatsApp Enquiry",
-        secondaryHref: "https://wa.me/60169090913"
+        secondaryHref: "https://wa.me/601131313160"
       }
     ],
     featuredBrands: [
@@ -194,7 +194,7 @@ export const productCategories: ProductCategory[] = [
         primaryLabel: "Request a Quote",
         primaryHref: "/contact",
         secondaryLabel: "WhatsApp Enquiry",
-        secondaryHref: "https://wa.me/60169090913"
+        secondaryHref: "https://wa.me/601131313160"
       }
     ],
     featuredBrands: [
@@ -269,7 +269,7 @@ export const productCategories: ProductCategory[] = [
         primaryLabel: "Request a Quote",
         primaryHref: "/contact",
         secondaryLabel: "WhatsApp Enquiry",
-        secondaryHref: "https://wa.me/60169090913"
+        secondaryHref: "https://wa.me/601131313160"
       }
     ],
     featuredBrands: [
@@ -344,7 +344,7 @@ export const productCategories: ProductCategory[] = [
         primaryLabel: "Request a Quote",
         primaryHref: "/contact",
         secondaryLabel: "WhatsApp Enquiry",
-        secondaryHref: "https://wa.me/60169090913"
+        secondaryHref: "https://wa.me/601131313160"
       }
     ],
     featuredBrands: [
@@ -416,7 +416,7 @@ export const productCategories: ProductCategory[] = [
         primaryLabel: "Request a Quote",
         primaryHref: "/contact",
         secondaryLabel: "WhatsApp Enquiry",
-        secondaryHref: "https://wa.me/60169090913"
+        secondaryHref: "https://wa.me/601131313160"
       }
     ],
     featuredBrands: [
@@ -489,7 +489,7 @@ export const productCategories: ProductCategory[] = [
         primaryLabel: "Request a Quote",
         primaryHref: "/contact",
         secondaryLabel: "WhatsApp Enquiry",
-        secondaryHref: "https://wa.me/60169090913"
+        secondaryHref: "https://wa.me/601131313160"
       }
     ],
     featuredBrands: [
@@ -563,7 +563,7 @@ export const productCategories: ProductCategory[] = [
         primaryLabel: "Request a Quote",
         primaryHref: "/contact",
         secondaryLabel: "WhatsApp Enquiry",
-        secondaryHref: "https://wa.me/60169090913"
+        secondaryHref: "https://wa.me/601131313160"
       }
     ],
     featuredBrands: [

@@ -190,7 +190,7 @@ export default function SiteLayout() {
                         }
                         required
                         autoComplete="given-name"
-                        placeholder="Carey"
+                        placeholder="Sales"
                       />
                     </label>
 
@@ -341,7 +341,7 @@ export default function SiteLayout() {
               </div>
               <div className="mega-col">
                 <p className="mega-label">Contact</p>
-                <Link to="/contact">Contact Carey</Link>
+                <Link to="/contact">Contact Sales</Link>
                 <Link to="/contact">Office Location</Link>
                 <Link to="/contact">Preferred Partners</Link>
               </div>
@@ -416,8 +416,8 @@ export default function SiteLayout() {
                   <a className="footer-link" href="mailto:sales@macadent.com.my">
                     sales@macadent.com.my
                   </a>
-                  <a className="footer-link" href="tel:+60169090913">
-                    Carey +60 16-909 0913
+                  <a className="footer-link" href="tel:+601131313160">
+                    Sales +60 11-3131 3160
                   </a>
                 </div>
               </div>

@@ -40,7 +40,7 @@ export default function ProductsLandingPage() {
           </Link>
           <a
             className="button ghost"
-            href="https://wa.me/60169090913"
+            href="https://wa.me/601131313160"
             target="_blank"
             rel="noreferrer"
           >

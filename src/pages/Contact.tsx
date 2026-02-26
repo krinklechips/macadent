@@ -87,13 +87,13 @@ export default function Contact() {
         <div className="contact-inline-strip">
           <div className="contact-inline-item">
             <p className="contact-label">Sales &amp; Project Contact</p>
-            <p className="contact-detail">Carey</p>
+            <p className="contact-detail">Sales</p>
             <div className="contact-link-stack">
               <a className="contact-link" href="mailto:sales@macadent.com.my">
                 sales@macadent.com.my
               </a>
-              <a className="contact-link" href="tel:+60169090913">
-                +60 16-909 0913
+              <a className="contact-link" href="tel:+601131313160">
+                +60 11-3131 3160
               </a>
             </div>
           </div>
