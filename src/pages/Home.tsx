@@ -1,8 +1,26 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import CmsSlotSection from "../components/CmsSlotSection";
 import { useCmsSlot } from "../hooks/useCmsSlot";
 import { usePageSeo } from "../hooks/usePageSeo";
 import { ProcessSection } from "./Process";
+
+type PublicArticle = {
+  id: number;
+  slug: string;
+  title: string;
+  summary: string;
+  category: string;
+  publishAt: string | null;
+  updatedAt: string;
+};
+
+type PublicArticlesResponse = {
+  items?: PublicArticle[];
+};
+
+const CMS_PUBLIC_BASE_URL = import.meta.env.VITE_CMS_PLATFORM_BASE_URL?.trim() || "https://cms.macadent.com.my";
+const CMS_TENANT_SLUG = import.meta.env.VITE_CMS_TENANT_SLUG?.trim() || "macadent";
 
 export default function Home() {
   usePageSeo({
@@ -14,6 +32,8 @@ export default function Home() {
 
   const homeUpdatesSlot = useCmsSlot("macadent-home-updates");
   const homeProgramsSlot = useCmsSlot("macadent-home-programs");
+  const [publicArticles, setPublicArticles] = useState<PublicArticle[]>([]);
+  const [articlesReady, setArticlesReady] = useState(false);
 
   const coreClinicalSystems = [
     {
@@ -56,6 +76,49 @@ export default function Home() {
       value: "Reliable workflows, upgrade readiness, and clinical usability"
     }
   ];
+
+  useEffect(() => {
+    let cancelled = false;
+    const url = new URL("/api/public/articles", CMS_PUBLIC_BASE_URL);
+    url.searchParams.set("tenantSlug", CMS_TENANT_SLUG);
+    url.searchParams.set("limit", "8");
+
+    fetch(url.toString(), { headers: { Accept: "application/json" } })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`articles-request-failed-${response.status}`);
+        const payload = (await response.json()) as PublicArticlesResponse;
+        return Array.isArray(payload.items) ? payload.items : [];
+      })
+      .then((items) => {
+        if (cancelled) return;
+        setPublicArticles(items);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPublicArticles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setArticlesReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const insightsArticles = useMemo(() => {
+    const insights = publicArticles.filter((item) => String(item.category || "").toLowerCase() === "insights");
+    return insights.length ? insights.slice(0, 3) : publicArticles.slice(0, 3);
+  }, [publicArticles]);
+
+  const hasInsights = insightsArticles.length > 0;
+
+  function formatArticleDate(value: string | null | undefined) {
+    if (!value) return "Not scheduled";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
 
   return (
     <>
@@ -124,6 +187,37 @@ export default function Home() {
               <p>{system.description}</p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="section home-insights-section">
+        <div className="section-heading">
+          <p className="eyebrow">Insights</p>
+          <h2>Latest updates from your CMS-powered editorial feed.</h2>
+          <p className="section-subtitle">
+            This section reads published articles from the tenant CMS. Keep layout stable in code while letting content stay dynamic.
+          </p>
+        </div>
+        <div className="insights-grid">
+          {hasInsights ? (
+            insightsArticles.map((item) => (
+              <article key={item.id} className="insights-card">
+                <p className="insights-meta">{(item.category || "article").toUpperCase()}</p>
+                <h3>{item.title}</h3>
+                <p>{item.summary || "No summary yet. Add a summary in tenant CMS to improve scannability."}</p>
+                <div className="insights-foot">
+                  <span>Published {formatArticleDate(item.publishAt || item.updatedAt)}</span>
+                  <span className="mono">/{item.slug}</span>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="insights-empty" role="status" aria-live="polite">
+              {articlesReady
+                ? "No published articles yet. Create and publish an article in tenant CMS to populate this section."
+                : "Loading published articles..."}
+            </div>
+          )}
         </div>
       </section>
 
