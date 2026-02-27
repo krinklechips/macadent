@@ -241,7 +241,7 @@ export default function Home() {
         </div>
       </section>
 
-      {homeInsightsSection.enabled ? <section className="section home-insights-section">
+      {homeInsightsSection.enabled ? <section id="insights" className="section home-insights-section">
         <div className="section-heading">
           <p className="eyebrow">{homeInsightsSection.eyebrow}</p>
           <h2>{homeInsightsSection.title}</h2>

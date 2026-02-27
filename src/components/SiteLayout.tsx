@@ -2,11 +2,279 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { companyIdentity } from "../data/siteContent";
 
+type CmsSiteNavLink = {
+  id?: string;
+  label: string;
+  href: string;
+  visible?: boolean;
+  order?: number;
+  description?: string | null;
+};
+
+type CmsSiteNavColumn = {
+  id?: string;
+  title?: string;
+  visible?: boolean;
+  order?: number;
+  items?: CmsSiteNavLink[];
+};
+
+type CmsSiteNavItem = CmsSiteNavLink & {
+  type?: "link" | "mega";
+  columns?: CmsSiteNavColumn[];
+};
+
+type CmsSiteNavigation = {
+  version?: number;
+  primary?: CmsSiteNavItem[];
+  cta?: CmsSiteNavLink | null;
+};
+
+type CmsSiteNavigationResponse = {
+  siteNavigation?: CmsSiteNavigation;
+};
+
+type CmsSiteSectionsResponse = {
+  siteSections?: {
+    homeInsights?: {
+      enabled?: boolean;
+    };
+  };
+};
+
+const MACADENT_TENANT_SLUG = "macadent";
+const CMS_PUBLIC_BASE_URL = "https://cms.macadent.com.my";
+
+const fallbackHeaderNavigation: CmsSiteNavigation = {
+  version: 1,
+  primary: [
+    {
+      id: "products",
+      label: "Products & Solutions",
+      href: "/products",
+      type: "mega",
+      visible: true,
+      order: 0,
+      columns: [
+        {
+          id: "equipment",
+          title: "Equipment",
+          order: 0,
+          visible: true,
+          items: [
+            { id: "chairs", label: "Dental Chairs & Units", href: "/products/chairs-units", order: 0, visible: true },
+            { id: "imaging", label: "Imaging Systems", href: "/products/imaging", order: 1, visible: true },
+            { id: "ster", label: "Sterilization Systems", href: "/products/sterilization", order: 2, visible: true },
+            { id: "water", label: "Water Filtration", href: "/products/water-filtration", order: 3, visible: true },
+            { id: "handpieces", label: "Handpieces & Small Equipment", href: "/products/handpieces-small-equipment", order: 4, visible: true }
+          ]
+        },
+        {
+          id: "euronda",
+          title: "Euronda Line",
+          order: 1,
+          visible: true,
+          items: [
+            { id: "e8", label: "E8 Autoclave", href: "/products/sterilization", order: 0, visible: true },
+            { id: "aquafilter", label: "Aquafilter 1 to 1", href: "/products/sterilization", order: 1, visible: true },
+            { id: "thermo", label: "Thermodisinfectors", href: "/products/sterilization", order: 2, visible: true }
+          ]
+        },
+        {
+          id: "services",
+          title: "Services",
+          order: 2,
+          visible: true,
+          items: [
+            { id: "clinic-planning", label: "Clinic Planning", href: "/process", order: 0, visible: true },
+            { id: "install", label: "Installation & Training", href: "/process", order: 1, visible: true },
+            { id: "aftercare", label: "Aftercare Support", href: "/process", order: 2, visible: true },
+            { id: "quote", label: "Request a Quote", href: "/contact", order: 3, visible: true }
+          ]
+        }
+      ]
+    },
+    { id: "process", label: "Process", href: "/process", type: "link", visible: true, order: 1 },
+    {
+      id: "company",
+      label: "Company",
+      href: "/company",
+      type: "mega",
+      visible: true,
+      order: 2,
+      columns: [
+        {
+          id: "company-about",
+          title: "About",
+          order: 0,
+          visible: true,
+          items: [
+            { id: "company-main", label: "Macadent Sdn Bhd", href: "/company", order: 0, visible: true },
+            { id: "company-reg", label: "Business Registration", href: "/company", order: 1, visible: true },
+            { id: "company-why", label: "Why Macadent", href: "/company", order: 2, visible: true }
+          ]
+        },
+        {
+          id: "company-contact",
+          title: "Contact",
+          order: 1,
+          visible: true,
+          items: [
+            { id: "contact-sales", label: "Contact Sales", href: "/contact", order: 0, visible: true },
+            { id: "contact-office", label: "Office Location", href: "/contact", order: 1, visible: true },
+            { id: "contact-partners", label: "Preferred Partners", href: "/contact", order: 2, visible: true }
+          ]
+        }
+      ]
+    }
+  ],
+  cta: { id: "contact", label: "Contact", href: "/contact", visible: true }
+};
+
+function isExternalHref(href: string) {
+  return /^(https?:)?\/\//i.test(href) || href.startsWith("mailto:") || href.startsWith("tel:");
+}
+
+function normalizeNavHref(href: string) {
+  const raw = String(href || "").trim();
+  if (!raw) return raw;
+  if (raw === "/insights") return "/#insights";
+  return raw;
+}
+
+function navItemKey(item: { label?: string; href?: string }) {
+  const label = String(item.label || "").trim().toLowerCase();
+  const href = normalizeNavHref(String(item.href || "")).trim().toLowerCase();
+  return `${label}::${href}`;
+}
+
+function ensureInsightsInNavigation(navigation: CmsSiteNavigation, enabled: boolean) {
+  if (!enabled) return navigation;
+  const primary = Array.isArray(navigation.primary) ? [...navigation.primary] : [];
+  const hasInsights = primary.some((item) => {
+    const href = normalizeNavHref(String(item.href || "")).trim().toLowerCase();
+    const label = String(item.label || "").trim().toLowerCase();
+    return label === "insights" || href === "/#insights" || href.endsWith("#insights");
+  });
+  if (hasInsights) return navigation;
+  const nextOrder = primary.reduce((max, item) => {
+    const order = Number(item.order);
+    return Number.isFinite(order) ? Math.max(max, order) : max;
+  }, -1) + 1;
+  primary.push({
+    id: "insights-fallback-link",
+    label: "Insights",
+    href: "/#insights",
+    visible: true,
+    order: nextOrder,
+    type: "link",
+    columns: []
+  });
+  return { ...navigation, primary };
+}
+
+function mergeFallbackWithCmsNavigation(fallback: CmsSiteNavigation, cms: CmsSiteNavigation) {
+  const fallbackPrimary = Array.isArray(fallback.primary) ? [...fallback.primary] : [];
+  const cmsPrimary = Array.isArray(cms.primary) ? [...cms.primary] : [];
+
+  if (!cmsPrimary.length) return fallback;
+  if (cmsPrimary.length >= 3) {
+    return {
+      ...cms,
+      cta: cms.cta && cms.cta.visible !== false ? cms.cta : fallback.cta || null
+    };
+  }
+
+  const merged = [...fallbackPrimary];
+  cmsPrimary.forEach((item) => {
+    const key = navItemKey(item);
+    const existingIndex = merged.findIndex((entry) => navItemKey(entry) === key);
+    if (existingIndex >= 0) {
+      merged[existingIndex] = {
+        ...merged[existingIndex],
+        ...item,
+        href: normalizeNavHref(String(item.href || merged[existingIndex].href || ""))
+      };
+      return;
+    }
+    merged.push({
+      ...item,
+      href: normalizeNavHref(String(item.href || "")),
+      order: Number.isFinite(Number(item.order)) ? Number(item.order) : merged.length
+    });
+  });
+
+  return {
+    version: Number(cms.version || fallback.version || 1),
+    primary: merged
+      .filter((item) => item.visible !== false && String(item.label || "").trim())
+      .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || a.label.localeCompare(b.label)),
+    cta: cms.cta && cms.cta.visible !== false ? cms.cta : fallback.cta || null
+  };
+}
+
+function normalizeCmsSiteNavigation(input: unknown): CmsSiteNavigation {
+  const source = (input && typeof input === "object" ? input : {}) as CmsSiteNavigation;
+  const primary = Array.isArray(source.primary) ? source.primary : [];
+  return {
+    version: Number(source.version || 1) || 1,
+    primary: primary
+      .map((item, index) => {
+        const label = String(item?.label || "").trim();
+        if (!label) return null;
+        const columns = Array.isArray(item?.columns) ? item.columns : [];
+        return {
+          id: String(item?.id || `cms-top-${index}`),
+          label,
+          href: normalizeNavHref(String(item?.href || "").trim()),
+          visible: item?.visible !== false,
+          order: Number.isFinite(Number(item?.order)) ? Number(item?.order) : index,
+          type: columns.length ? "mega" : (item?.type === "mega" ? "mega" : "link"),
+          columns: columns
+            .map((column, colIndex) => {
+              const items = Array.isArray(column?.items) ? column.items : [];
+              return {
+                id: String(column?.id || `cms-col-${index}-${colIndex}`),
+                title: String(column?.title || "").trim(),
+                visible: column?.visible !== false,
+                order: Number.isFinite(Number(column?.order)) ? Number(column?.order) : colIndex,
+                items: items
+                  .map((subItem, itemIndex) => ({
+                    id: String(subItem?.id || `cms-sub-${index}-${colIndex}-${itemIndex}`),
+                    label: String(subItem?.label || "").trim(),
+                    href: normalizeNavHref(String(subItem?.href || "").trim()),
+                    visible: subItem?.visible !== false,
+                    order: Number.isFinite(Number(subItem?.order)) ? Number(subItem?.order) : itemIndex,
+                    description: subItem?.description ? String(subItem.description) : null
+                  }))
+                  .filter((subItem) => subItem.visible !== false && subItem.label)
+                  .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.label.localeCompare(b.label))
+              };
+            })
+            .filter((column) => column.visible !== false && (column.title || column.items.length))
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.title || "").localeCompare(b.title || ""))
+        } as CmsSiteNavItem;
+      })
+      .filter((item): item is CmsSiteNavItem => Boolean(item && item.visible !== false))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.label.localeCompare(b.label)),
+    cta:
+      source.cta && typeof source.cta === "object" && String(source.cta.label || "").trim() && source.cta.visible !== false
+        ? {
+            id: String(source.cta.id || "cta"),
+            label: String(source.cta.label || "").trim(),
+            href: normalizeNavHref(String(source.cta.href || "").trim()),
+            visible: true
+          }
+        : null
+  };
+}
+
 export default function SiteLayout() {
   const location = useLocation();
   const currentYear = new Date().getFullYear();
   const [newsletterOpen, setNewsletterOpen] = useState(false);
   const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
+  const [headerNavigation, setHeaderNavigation] = useState<CmsSiteNavigation>(() => normalizeCmsSiteNavigation(fallbackHeaderNavigation));
   const [newsletterForm, setNewsletterForm] = useState({
     firstName: "",
     lastName: "",
@@ -79,6 +347,46 @@ export default function SiteLayout() {
       ]
     }
   ] as const;
+
+  useEffect(() => {
+    let cancelled = false;
+    const fallback = normalizeCmsSiteNavigation(fallbackHeaderNavigation);
+
+    const navUrl = `${CMS_PUBLIC_BASE_URL}/api/public/site-navigation?tenantSlug=${encodeURIComponent(MACADENT_TENANT_SLUG)}`;
+    const sectionsUrl = `${CMS_PUBLIC_BASE_URL}/api/public/site-sections?tenantSlug=${encodeURIComponent(MACADENT_TENANT_SLUG)}`;
+
+    Promise.all([
+      fetch(navUrl).then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Navigation request failed (${response.status})`);
+        }
+        const data = (await response.json()) as CmsSiteNavigationResponse;
+        return normalizeCmsSiteNavigation(data?.siteNavigation);
+      }),
+      fetch(sectionsUrl)
+        .then(async (response) => {
+          if (!response.ok) return false;
+          const payload = (await response.json()) as CmsSiteSectionsResponse;
+          return payload?.siteSections?.homeInsights?.enabled !== false;
+        })
+        .catch(() => false)
+    ])
+      .then(([cmsNavigation, insightsEnabled]) => {
+        if (cancelled) return;
+        const merged = mergeFallbackWithCmsNavigation(fallback, cmsNavigation);
+        setHeaderNavigation(ensureInsightsInNavigation(merged, Boolean(insightsEnabled)));
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        // Keep resilience fallback, but emit a debug line so integration issues are visible.
+        console.warn("[macadent] header navigation fallback active:", error);
+        setHeaderNavigation(fallback);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (location.pathname !== "/") {
@@ -292,67 +600,64 @@ export default function SiteLayout() {
           />
         </Link>
         <nav className="nav-links">
-          <div className="nav-item has-mega">
-            <NavLink className={({ isActive }) => `nav-trigger${isActive ? " active" : ""}`} to="/products">
-              Products &amp; Solutions
-            </NavLink>
-            <div className="mega-menu">
-              <div className="mega-col">
-                <p className="mega-label">Equipment</p>
-                <Link to="/products/chairs-units">Dental Chairs &amp; Units</Link>
-                <Link to="/products/imaging">Imaging Systems</Link>
-                <Link to="/products/sterilization">Sterilization Systems</Link>
-                <Link to="/products/water-filtration">Water Filtration</Link>
-                <Link to="/products/handpieces-small-equipment">Handpieces &amp; Small Equipment</Link>
-                <p className="mega-label">Materials</p>
-                <Link to="/products/materials-consumables">Dental Materials &amp; Consumables</Link>
-                <Link to="/products/orthodontic-consumables">Orthodontic Consumables</Link>
+          {(headerNavigation.primary || []).map((item) => {
+            const columns = Array.isArray(item.columns) ? item.columns.filter((col) => col.visible !== false) : [];
+            const hasMega = item.type === "mega" && columns.length > 0;
+            const href = item.href || "/";
+            const isExternal = isExternalHref(href);
+
+            if (hasMega) {
+              return (
+                <div key={item.id || item.label} className="nav-item has-mega">
+                  {isExternal ? (
+                    <a className="nav-trigger" href={href} target="_blank" rel="noopener noreferrer">
+                      {item.label}
+                    </a>
+                  ) : (
+                    <NavLink className={({ isActive }) => `nav-trigger${isActive ? " active" : ""}`} to={href}>
+                      {item.label}
+                    </NavLink>
+                  )}
+                  <div className={`mega-menu${columns.length <= 2 ? " mega-menu--compact" : ""}`}>
+                    {columns.map((column) => (
+                      <div key={column.id || column.title} className="mega-col">
+                        {column.title ? <p className="mega-label">{column.title}</p> : null}
+                        {(column.items || []).filter((subItem) => subItem.visible !== false).map((subItem) => {
+                          const subHref = subItem.href || href || "/";
+                          if (isExternalHref(subHref)) {
+                            return (
+                              <a key={subItem.id || `${column.id}-${subItem.label}`} href={subHref} target="_blank" rel="noopener noreferrer">
+                                {subItem.label}
+                              </a>
+                            );
+                          }
+                          return (
+                            <Link key={subItem.id || `${column.id}-${subItem.label}`} to={subHref}>
+                              {subItem.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div key={item.id || item.label} className="nav-item">
+                {isExternal ? (
+                  <a className="nav-link" href={href} target="_blank" rel="noopener noreferrer">
+                    {item.label}
+                  </a>
+                ) : (
+                  <NavLink className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to={href}>
+                    {item.label}
+                  </NavLink>
+                )}
               </div>
-              <div className="mega-col">
-                <p className="mega-label">Euronda Line</p>
-                <Link to="/products/sterilization">E8 Autoclave</Link>
-                <Link to="/products/sterilization">Aquafilter 1 to 1</Link>
-                <Link to="/products/sterilization">Thermodisinfectors</Link>
-              </div>
-              <div className="mega-col">
-                <p className="mega-label">Services</p>
-                <Link to="/process">Clinic Planning</Link>
-                <Link to="/process">Installation &amp; Training</Link>
-                <Link to="/process">Aftercare Support</Link>
-                <Link to="/contact">Request a Quote</Link>
-              </div>
-            </div>
-          </div>
-          <div className="nav-item">
-            <NavLink className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to="/process">
-              Process
-            </NavLink>
-          </div>
-          <div className="nav-item has-mega">
-            <NavLink className={({ isActive }) => `nav-trigger${isActive ? " active" : ""}`} to="/company">
-              Company
-            </NavLink>
-            <div className="mega-menu mega-menu--compact">
-              <div className="mega-col">
-                <p className="mega-label">About</p>
-                <Link to="/company">Macadent Sdn Bhd</Link>
-                <Link to="/company">Business Registration</Link>
-                <Link to="/company">Why Macadent</Link>
-              </div>
-              <div className="mega-col">
-                <p className="mega-label">Contact</p>
-                <Link to="/contact">Contact Sales</Link>
-                <Link to="/contact">Office Location</Link>
-                <Link to="/contact">Preferred Partners</Link>
-              </div>
-              <div className="mega-col">
-                <p className="mega-label">Resources</p>
-                <Link to="/products">Product Catalogue</Link>
-                <Link to="/process">Consultation Process</Link>
-                <Link to="/contact">Schedule a Visit</Link>
-              </div>
-            </div>
-          </div>
+            );
+          })}
           <div className="nav-item">
             <NavLink
               className={({ isActive }) => `nav-link nav-link--feature${isActive ? " active" : ""}`}
@@ -363,9 +668,24 @@ export default function SiteLayout() {
               <span className="nav-feature-badge">Interactive</span>
             </NavLink>
           </div>
-          <NavLink className={({ isActive }) => `nav-cta${isActive ? " active" : ""}`} to="/contact">
-            Contact
-          </NavLink>
+          {(() => {
+            const cta = headerNavigation.cta && headerNavigation.cta.visible !== false
+              ? headerNavigation.cta
+              : { label: "Contact", href: "/contact" };
+            const ctaHref = cta.href || "/contact";
+            if (isExternalHref(ctaHref)) {
+              return (
+                <a className="nav-cta" href={ctaHref} target="_blank" rel="noopener noreferrer">
+                  {cta.label}
+                </a>
+              );
+            }
+            return (
+              <NavLink className={({ isActive }) => `nav-cta${isActive ? " active" : ""}`} to={ctaHref}>
+                {cta.label}
+              </NavLink>
+            );
+          })()}
         </nav>
       </header>
 
