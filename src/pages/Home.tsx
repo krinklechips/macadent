@@ -19,8 +19,27 @@ type PublicArticlesResponse = {
   items?: PublicArticle[];
 };
 
+type SiteSectionConfig = {
+  enabled: boolean;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+};
+
+type PublicSiteSectionsResponse = {
+  siteSections?: {
+    homeInsights?: Partial<SiteSectionConfig>;
+  };
+};
+
 const CMS_PUBLIC_BASE_URL = import.meta.env.VITE_CMS_PLATFORM_BASE_URL?.trim() || "https://cms.macadent.com.my";
 const CMS_TENANT_SLUG = import.meta.env.VITE_CMS_TENANT_SLUG?.trim() || "macadent";
+const DEFAULT_HOME_INSIGHTS_SECTION: SiteSectionConfig = {
+  enabled: true,
+  eyebrow: "Insights",
+  title: "Latest updates from your CMS-powered editorial feed.",
+  subtitle: "This section reads published articles from the tenant CMS. Keep layout stable in code while letting content stay dynamic."
+};
 
 export default function Home() {
   usePageSeo({
@@ -34,6 +53,7 @@ export default function Home() {
   const homeProgramsSlot = useCmsSlot("macadent-home-programs");
   const [publicArticles, setPublicArticles] = useState<PublicArticle[]>([]);
   const [articlesReady, setArticlesReady] = useState(false);
+  const [homeInsightsSection, setHomeInsightsSection] = useState<SiteSectionConfig>(DEFAULT_HOME_INSIGHTS_SECTION);
 
   const coreClinicalSystems = [
     {
@@ -99,6 +119,37 @@ export default function Home() {
       })
       .finally(() => {
         if (!cancelled) setArticlesReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const url = new URL("/api/public/site-sections", CMS_PUBLIC_BASE_URL);
+    url.searchParams.set("tenantSlug", CMS_TENANT_SLUG);
+
+    fetch(url.toString(), { headers: { Accept: "application/json" } })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`site-sections-request-failed-${response.status}`);
+        const payload = (await response.json()) as PublicSiteSectionsResponse;
+        const input = payload?.siteSections?.homeInsights || {};
+        return {
+          enabled: input.enabled !== false,
+          eyebrow: String(input.eyebrow || "").trim() || DEFAULT_HOME_INSIGHTS_SECTION.eyebrow,
+          title: String(input.title || "").trim() || DEFAULT_HOME_INSIGHTS_SECTION.title,
+          subtitle: String(input.subtitle || "").trim() || DEFAULT_HOME_INSIGHTS_SECTION.subtitle
+        } satisfies SiteSectionConfig;
+      })
+      .then((next) => {
+        if (cancelled) return;
+        setHomeInsightsSection(next);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setHomeInsightsSection(DEFAULT_HOME_INSIGHTS_SECTION);
       });
 
     return () => {
@@ -190,13 +241,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section home-insights-section">
+      {homeInsightsSection.enabled ? <section className="section home-insights-section">
         <div className="section-heading">
-          <p className="eyebrow">Insights</p>
-          <h2>Latest updates from your CMS-powered editorial feed.</h2>
-          <p className="section-subtitle">
-            This section reads published articles from the tenant CMS. Keep layout stable in code while letting content stay dynamic.
-          </p>
+          <p className="eyebrow">{homeInsightsSection.eyebrow}</p>
+          <h2>{homeInsightsSection.title}</h2>
+          <p className="section-subtitle">{homeInsightsSection.subtitle}</p>
         </div>
         <div className="insights-grid">
           {hasInsights ? (
@@ -219,7 +268,7 @@ export default function Home() {
             </div>
           )}
         </div>
-      </section>
+      </section> : null}
 
       <CmsSlotSection
         data={homeUpdatesSlot.data}
