@@ -9,6 +9,8 @@ type CmsSlotSectionProps = {
   subtitle?: string;
 };
 
+const showCmsDiagnostics = import.meta.env.VITE_SHOW_CMS_DIAGNOSTICS === "true";
+
 function formatTabLabel(value: string) {
   return value
     .replace(/[-_]/g, " ")
@@ -51,7 +53,7 @@ export default function CmsSlotSection({
             <h3>{title}</h3>
             {subtitle ? <p className="cms-slot-subtitle">{subtitle}</p> : null}
           </div>
-          <span className={`cms-slot-source-badge ${data.source}`}>{sourceLabel}</span>
+          {showCmsDiagnostics ? <span className={`cms-slot-source-badge ${data.source}`}>{sourceLabel}</span> : null}
         </div>
 
         {tabs.length > 1 ? (
@@ -91,15 +93,23 @@ export default function CmsSlotSection({
           </div>
         ) : (
           <div className="cms-slot-empty">
-            <p>No published items are assigned to this slot yet.</p>
-            <p>
-              Use your CMS platform to publish content items and assign them to
-              <code>{` ${data.slot.key} `}</code>.
-            </p>
+            {showCmsDiagnostics ? (
+              <>
+                <p>No published items are assigned to this slot yet.</p>
+                <p>
+                  Use your CMS platform to publish content items and assign them to
+                  <code>{` ${data.slot.key} `}</code>.
+                </p>
+              </>
+            ) : (
+              <>
+                <p>New content will be published here soon.</p>
+                <p>For urgent enquiries, contact our team and we will assist you directly.</p>
+              </>
+            )}
           </div>
         )}
       </div>
     </section>
   );
 }
-

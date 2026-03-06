@@ -273,9 +273,9 @@ export default function Home() {
       <CmsSlotSection
         data={homeUpdatesSlot.data}
         className="home-cms-slot"
-        eyebrow="CMS-Ready Slot"
+        eyebrow="Clinical Updates"
         fallbackTitle="Clinic updates and planning notices"
-        subtitle="This section reads from your CMS platform public slot endpoint when configured, and falls back to local content during setup."
+        subtitle="Latest updates on planning, procurement, and operational notices for clinics."
       />
 
       <ProcessSection
@@ -290,7 +290,7 @@ export default function Home() {
         className="home-cms-slot"
         eyebrow="Featured Programs"
         fallbackTitle="Macadent project and supply support"
-        subtitle="Use this slot for promotions, project highlights, supplier notices, or campaign content from your CMS platform."
+        subtitle="Explore active support programs for new setups, expansions, and recurring supply planning."
       />
 
       <section className="section home-credibility-section">

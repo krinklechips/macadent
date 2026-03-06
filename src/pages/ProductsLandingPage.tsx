@@ -51,9 +51,9 @@ export default function ProductsLandingPage() {
 
       <CmsSlotSection
         data={featuredProductsSlot.data}
-        eyebrow="CMS-Ready Slot"
+        eyebrow="Featured Programs"
         fallbackTitle="Procurement programs and highlights"
-        subtitle="Assign content items to the `macadent-products-featured` slot in your CMS platform to publish updates here."
+        subtitle="Current procurement programs and category highlights for clinic purchasing teams."
       />
 
       <section className="catalog-section">
