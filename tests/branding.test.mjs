@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,4 +35,27 @@ test("organization schema advertises the canonical Macadent logo", () => {
   assert.equal(payload.url, "https://macadent.com.my");
   assert.equal(payload.logo, "https://macadent.com.my/macadent-logo-hd.png");
   assert.equal(payload.image, "https://macadent.com.my/macadent-logo-hd.png");
+});
+
+test("legacy favicon filenames also serve Macadent icon assets", () => {
+  const pairs = [
+    ["public/favicon-16.png", "public/macadent-mark-16.png"],
+    ["public/favicon-32.png", "public/macadent-mark-32.png"],
+    ["public/favicon-128.png", "public/macadent-mark-128.png"],
+    ["public/apple-touch-icon.png", "public/macadent-apple-touch-icon.png"]
+  ];
+
+  for (const [legacyPath, canonicalPath] of pairs) {
+    const legacy = readFileSync(join(rootDir, legacyPath));
+    const canonical = readFileSync(join(rootDir, canonicalPath));
+    assert.deepEqual(
+      legacy,
+      canonical,
+      `${legacyPath} should match ${canonicalPath} so crawlers do not pick an old brand asset`
+    );
+  }
+});
+
+test("favicon.ico exists as a real icon file", () => {
+  assert.equal(existsSync(join(rootDir, "public/favicon.ico")), true);
 });
