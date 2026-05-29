@@ -1,38 +1,14 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { companyIdentity } from "../data/siteContent";
-
-type CmsSiteNavLink = {
-  id?: string;
-  label: string;
-  href: string;
-  visible?: boolean;
-  order?: number;
-  description?: string | null;
-};
-
-type CmsSiteNavColumn = {
-  id?: string;
-  title?: string;
-  visible?: boolean;
-  order?: number;
-  items?: CmsSiteNavLink[];
-};
-
-type CmsSiteNavItem = CmsSiteNavLink & {
-  type?: "link" | "mega";
-  columns?: CmsSiteNavColumn[];
-};
-
-type CmsSiteNavigation = {
-  version?: number;
-  primary?: CmsSiteNavItem[];
-  cta?: CmsSiteNavLink | null;
-};
-
-type CmsSiteNavigationResponse = {
-  siteNavigation?: CmsSiteNavigation;
-};
+import {
+  buildPublicCmsUrl,
+  CMS_TENANT_SLUG,
+  NEWSLETTER_POPUP_ENABLED,
+  type CmsSiteNavItem,
+  type CmsSiteNavigation,
+  type CmsSiteNavigationResponse
+} from "../lib/cms/public";
 
 type CmsSiteSectionsResponse = {
   siteSections?: {
@@ -42,8 +18,7 @@ type CmsSiteSectionsResponse = {
   };
 };
 
-const MACADENT_TENANT_SLUG = "macadent";
-const CMS_PUBLIC_BASE_URL = "https://cms.macadent.com.my";
+const MACADENT_TENANT_SLUG = CMS_TENANT_SLUG;
 
 const fallbackHeaderNavigation: CmsSiteNavigation = {
   version: 1,
@@ -138,7 +113,7 @@ function isExternalHref(href: string) {
 function normalizeNavHref(href: string) {
   const raw = String(href || "").trim();
   if (!raw) return raw;
-  if (raw === "/insights") return "/#insights";
+  if (raw === "/#insights") return "/insights";
   return raw;
 }
 
@@ -154,7 +129,7 @@ function ensureInsightsInNavigation(navigation: CmsSiteNavigation, enabled: bool
   const hasInsights = primary.some((item) => {
     const href = normalizeNavHref(String(item.href || "")).trim().toLowerCase();
     const label = String(item.label || "").trim().toLowerCase();
-    return label === "insights" || href === "/#insights" || href.endsWith("#insights");
+    return label === "insights" || href === "/insights" || href.endsWith("/insights");
   });
   if (hasInsights) return navigation;
   const nextOrder = primary.reduce((max, item) => {
@@ -164,7 +139,7 @@ function ensureInsightsInNavigation(navigation: CmsSiteNavigation, enabled: bool
   primary.push({
     id: "insights-fallback-link",
     label: "Insights",
-    href: "/#insights",
+    href: "/insights",
     visible: true,
     order: nextOrder,
     type: "link",
@@ -197,10 +172,20 @@ function mergeFallbackWithCmsNavigation(fallback: CmsSiteNavigation, cms: CmsSit
       };
       return;
     }
+    const normalizedOrder = Number.isFinite(Number(item.order)) ? Number(item.order) : merged.length;
+    const isAutoInsights = String(item.id || "").startsWith("auto-insights");
+    const fallbackMaxOrder = fallbackPrimary.reduce((max, entry) => {
+      const entryOrder = Number(entry.order);
+      return Number.isFinite(entryOrder) ? Math.max(max, entryOrder) : max;
+    }, -1);
+    const resolvedOrder = isAutoInsights && normalizedOrder <= fallbackMaxOrder
+      ? fallbackMaxOrder + 1
+      : normalizedOrder;
+
     merged.push({
       ...item,
       href: normalizeNavHref(String(item.href || "")),
-      order: Number.isFinite(Number(item.order)) ? Number(item.order) : merged.length
+      order: resolvedOrder
     });
   });
 
@@ -351,19 +336,25 @@ export default function SiteLayout() {
   useEffect(() => {
     let cancelled = false;
     const fallback = normalizeCmsSiteNavigation(fallbackHeaderNavigation);
+    const navUrl = buildPublicCmsUrl("/api/public/site-navigation", { tenantSlug: MACADENT_TENANT_SLUG });
+    const sectionsUrl = buildPublicCmsUrl("/api/public/site-sections", { tenantSlug: MACADENT_TENANT_SLUG });
 
-    const navUrl = `${CMS_PUBLIC_BASE_URL}/api/public/site-navigation?tenantSlug=${encodeURIComponent(MACADENT_TENANT_SLUG)}`;
-    const sectionsUrl = `${CMS_PUBLIC_BASE_URL}/api/public/site-sections?tenantSlug=${encodeURIComponent(MACADENT_TENANT_SLUG)}`;
+    if (!navUrl || !sectionsUrl) {
+      setHeaderNavigation(ensureInsightsInNavigation(fallback, true));
+      return () => {
+        cancelled = true;
+      };
+    }
 
     Promise.all([
-      fetch(navUrl).then(async (response) => {
+      fetch(navUrl.toString()).then(async (response) => {
         if (!response.ok) {
           throw new Error(`Navigation request failed (${response.status})`);
         }
         const data = (await response.json()) as CmsSiteNavigationResponse;
         return normalizeCmsSiteNavigation(data?.siteNavigation);
       }),
-      fetch(sectionsUrl)
+      fetch(sectionsUrl.toString())
         .then(async (response) => {
           if (!response.ok) return false;
           const payload = (await response.json()) as CmsSiteSectionsResponse;
@@ -389,6 +380,49 @@ export default function SiteLayout() {
   }, []);
 
   useEffect(() => {
+    if (!location.hash) return;
+    const targetId = decodeURIComponent(location.hash.replace(/^#/, "").trim());
+    if (!targetId) return;
+
+    const raf = window.requestAnimationFrame(() => {
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    return () => window.cancelAnimationFrame(raf);
+  }, [location.pathname, location.hash]);
+
+  useEffect(() => {
+    const handleHashNavClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest('a[href^="/#"]') as HTMLAnchorElement | null;
+      if (!anchor) return;
+      if (location.pathname !== "/") return;
+      const href = anchor.getAttribute("href") || "";
+      const hashValue = href.split("#")[1] || "";
+      if (!hashValue) return;
+      const section = document.getElementById(decodeURIComponent(hashValue));
+      if (!section) return;
+      event.preventDefault();
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (window.location.hash !== ("#" + hashValue)) {
+        window.history.replaceState(null, "", "/#" + hashValue);
+      }
+    };
+
+    document.addEventListener("click", handleHashNavClick);
+    return () => document.removeEventListener("click", handleHashNavClick);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!NEWSLETTER_POPUP_ENABLED) {
+      setNewsletterOpen(false);
+      return;
+    }
+
     if (location.pathname !== "/") {
       return;
     }
@@ -498,7 +532,7 @@ export default function SiteLayout() {
                         }
                         required
                         autoComplete="given-name"
-                        placeholder="Sales"
+                        placeholder="Aina"
                       />
                     </label>
 
@@ -577,8 +611,8 @@ export default function SiteLayout() {
                 <p className="newsletter-modal-kicker">Subscription Received</p>
                 <h2 id="newsletter-modal-title">Thanks for subscribing.</h2>
                 <p id="newsletter-modal-description">
-                  This popup is now ready for CRM integration. Next step is connecting the submit
-                  action to your newsletter platform (Mailchimp, Brevo, HubSpot, etc.).
+                  You are on the list. We will use the details above for occasional product updates
+                  and practical clinic planning notes.
                 </p>
                 <div className="newsletter-modal-actions">
                   <button type="button" className="button newsletter-submit-button" onClick={closeNewsletter}>
@@ -595,7 +629,7 @@ export default function SiteLayout() {
         <Link className="brand" to="/">
           <img
             className="brand-logo brand-logo--lockup"
-            src="/mcd-v2-transparent.png"
+            src="/macadent-logo.png"
             alt="Macadent Sdn Bhd Dental and Medical Supplies"
           />
         </Link>
@@ -699,7 +733,7 @@ export default function SiteLayout() {
             <Link className="footer-brand-link" to="/company">
               <img
                 className="footer-brand-logo footer-brand-logo--lockup"
-                src="/mcd-v2-transparent.png"
+                src="/macadent-logo.png"
                 alt="Macadent Sdn Bhd Dental and Medical Supplies"
               />
             </Link>
